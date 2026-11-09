@@ -1,14 +1,13 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { DB_WEEKDAY_CODES, WEEKDAYS, fromKey, minutesToTime, timeToMinutes, toKey } from '../../features/agenda-board/utils/dateRangeCalculator'
 import { ContactSearchSelect } from '../../features/events/components/ContactSearchSelect'
 import { useCreateEvent } from '../../features/events/hooks/useCreateEvent'
-import { TagDot } from '../../features/tags/components/TagPill'
-import { DEFAULT_PRESET_TAGS } from '../../features/tags/hooks/useInfiniteTags'
+import { TagSearchInput } from '../../features/tags/components/TagSearchInput'
 import { useCreateTaskOrRoutine } from '../../features/tasks-routines/hooks/useCreateTaskOrRoutine'
-import { normalizeTagNameForDb, sanitizeHexColor, stripLeadingHash } from '../api/httpClient'
+import { normalizeTagNameForDb, sanitizeHexColor } from '../api/httpClient'
 import { combineDateAndTimeISO } from '../utils/isoDateFormatter'
 import { Dialog, DialogHeader } from './Dialog'
-import { IconPlus, KIND_META } from './icons'
+import { KIND_META } from './icons'
 import { RecurrenceFields } from './RecurrenceFields'
 import { RemindersListInput } from './RemindersListInput'
 
@@ -59,31 +58,8 @@ export function CreateItemDialog({
   const [recurrenceConfig, setRecurrenceConfig] = useState(null)
   const [recordatorios, setRecordatorios] = useState([])
 
-  // Etiquetas y Color
-  const mergedTags = useMemo(() => {
-    const map = new Map()
-    for (const t of [...DEFAULT_PRESET_TAGS, ...availableTags]) {
-      const label = stripLeadingHash(t.nombre || t.label || '')
-      if (!label) continue
-      const key = label.toLowerCase()
-      if (!map.has(key)) {
-        map.set(key, {
-          id: t.id ?? key,
-          nombre: `#${label}`,
-          label,
-          hexColor: sanitizeHexColor(t.hexColor || t.color, '#3B82F6'),
-        })
-      }
-    }
-    return Array.from(map.values())
-  }, [availableTags])
-
-  const defaultTagName =
-    initialKind === 'routine' ? '#Salud' : initialKind === 'task' ? '#Personal' : '#Trabajo'
-
-  const [selectedTagNames, setSelectedTagNames] = useState([defaultTagName])
-  const [customTagInput, setCustomTagInput] = useState('')
-  const [customTags, setCustomTags] = useState([])
+  // Etiquetas y Color: el formulario inicia sin etiquetas; solo se muestran las que el usuario añade
+  const [selectedTags, setSelectedTags] = useState([])
   const [hexColor, setHexColor] = useState(() => KIND_META[initialKind]?.defaultHex || '#3B82F6')
   const [validationError, setValidationError] = useState(null)
 
@@ -94,8 +70,6 @@ export function CreateItemDialog({
     error: taskError,
     clearError: clearTaskError,
   } = useCreateTaskOrRoutine()
-
-  const allTagOptions = useMemo(() => [...mergedTags, ...customTags], [mergedTags, customTags])
 
   const weekdayIndex = fromKey(date).getDay()
   const weekdayName = WEEKDAYS[weekdayIndex]
@@ -108,49 +82,7 @@ export function CreateItemDialog({
     clearEventError()
     clearTaskError()
     setHexColor(KIND_META[nextKind]?.defaultHex || '#3B82F6')
-    const defaultTag = nextKind === 'routine' ? '#Salud' : nextKind === 'task' ? '#Personal' : '#Trabajo'
-    setSelectedTagNames([defaultTag])
   }
-
-  const toggleTagSelection = (tagObj) => {
-    setSelectedTagNames((prev) => {
-      const exists = prev.some((n) => n.toLowerCase() === tagObj.nombre.toLowerCase())
-      if (exists) {
-        return prev.filter((n) => n.toLowerCase() !== tagObj.nombre.toLowerCase())
-      }
-      setHexColor(sanitizeHexColor(tagObj.hexColor, hexColor))
-      return [...prev, tagObj.nombre]
-    })
-  }
-
-  const handleAddCustomTag = () => {
-    const formatted = normalizeTagNameForDb(customTagInput)
-    if (!formatted) return
-    const label = stripLeadingHash(formatted)
-    if (!allTagOptions.some((t) => t.nombre.toLowerCase() === formatted.toLowerCase())) {
-      setCustomTags((prev) => [
-        ...prev,
-        { id: formatted.toLowerCase(), nombre: formatted, label, hexColor: sanitizeHexColor(hexColor) },
-      ])
-    }
-    setSelectedTagNames((prev) =>
-      prev.some((n) => n.toLowerCase() === formatted.toLowerCase()) ? prev : [...prev, formatted],
-    )
-    setCustomTagInput('')
-  }
-
-  const buildEtiquetasPayload = () =>
-    selectedTagNames
-      .map((name) => {
-        const found = allTagOptions.find((t) => t.nombre.toLowerCase() === name.toLowerCase())
-        const cleanName = normalizeTagNameForDb(found?.nombre || name)
-        if (!cleanName) return null
-        return {
-          nombre: cleanName,
-          hexColor: sanitizeHexColor(found?.hexColor || hexColor, KIND_META[kind].defaultHex),
-        }
-      })
-      .filter(Boolean)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -173,7 +105,12 @@ export function CreateItemDialog({
       return
     }
 
-    const etiquetasPayload = buildEtiquetasPayload()
+    const etiquetasPayload = selectedTags
+      .map((t) => ({
+        nombre: normalizeTagNameForDb(t.nombre || t.label),
+        hexColor: sanitizeHexColor(t.hexColor, validHex),
+      }))
+      .filter((t) => t.nombre)
     const recordatoriosPayload = recordatorios.map((r) => ({
       tiempoAnticipacion: Math.max(0, Number(r.tiempoAnticipacion) || 0),
       unidadTiempo: r.unidadTiempo || 'MINUTOS',
@@ -608,58 +545,17 @@ export function CreateItemDialog({
         {/* Recordatorios dinámicos */}
         <RemindersListInput value={recordatorios} onChange={setRecordatorios} />
 
-        {/* Etiquetas */}
+        {/* Etiquetas: buscador con sugerencias; solo se muestran las etiquetas seleccionadas */}
         <fieldset>
           <legend className="mb-1.5 text-[12px] font-medium text-ink-soft">Etiquetas</legend>
-          <div className="flex flex-wrap gap-2">
-            {allTagOptions.map((t) => {
-              const isSelected = selectedTagNames.some((n) => n.toLowerCase() === t.nombre.toLowerCase())
-              return (
-                <button
-                  key={t.nombre}
-                  type="button"
-                  aria-pressed={isSelected}
-                  onClick={() => toggleTagSelection(t)}
-                  className={`inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-[13px] transition-colors focus-visible:ring-2 focus-visible:ring-accent/30 focus-visible:outline-none ${
-                    isSelected
-                      ? 'border-ink/20 bg-surface font-medium text-ink shadow-whisper'
-                      : 'border-line text-ink-soft hover:text-ink'
-                  }`}
-                >
-                  <TagDot color={t.hexColor} size={7} />
-                  <span>
-                    <span className="text-ink-faint">#</span>
-                    {t.label}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
-
-          <div className="mt-2.5 flex items-center gap-2">
-            <input
-              type="text"
-              maxLength={49}
-              value={customTagInput}
-              onChange={(e) => setCustomTagInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault()
-                  handleAddCustomTag()
-                }
-              }}
-              placeholder="Nueva etiqueta (ej. Finanzas)"
-              className="h-8 flex-1 rounded-lg border border-line bg-canvas px-2.5 text-[12.5px] text-ink outline-none placeholder:text-ink-faint focus:border-accent/50 focus:bg-surface"
-            />
-            <button
-              type="button"
-              onClick={handleAddCustomTag}
-              className="inline-flex h-8 items-center gap-1 rounded-lg border border-line bg-surface px-2.5 text-[12.5px] font-medium text-ink-soft transition-colors hover:text-ink"
-            >
-              <IconPlus size={13} />
-              Etiqueta
-            </button>
-          </div>
+          <TagSearchInput
+            selectedTags={selectedTags}
+            onChange={setSelectedTags}
+            availableTags={availableTags}
+            defaultColor={sanitizeHexColor(hexColor, KIND_META[kind].defaultHex)}
+            onSelectColor={(hex) => setHexColor(sanitizeHexColor(hex, hexColor))}
+            tone="canvas"
+          />
         </fieldset>
 
         <div className="flex justify-end gap-2 border-t border-line pt-4">

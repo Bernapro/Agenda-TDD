@@ -333,6 +333,7 @@ export default function App() {
           availableTags={sidebarTags}
           onClose={closeDialog}
           onContactCreated={refreshContactsCount}
+          onTagCreated={refreshTags}
         />
       )}
     </div>

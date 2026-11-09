@@ -7,6 +7,7 @@ const SILENT_404_PATHS = [
   '/agenda/actividades/etiqueta',
   '/agenda/actividades/mes',
   '/agenda/tareas/subtareas',
+  '/agenda/etiquetas/nombre',
 ]
 
 export class ApiError extends Error {

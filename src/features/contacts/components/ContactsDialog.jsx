@@ -1,14 +1,14 @@
-import { useMemo, useRef, useState } from 'react'
-import { normalizeTagNameForDb, sanitizeHexColor, stripLeadingHash } from '../../../shared/api/httpClient'
+import { useRef, useState } from 'react'
+import { normalizeTagNameForDb, sanitizeHexColor } from '../../../shared/api/httpClient'
 import { Dialog, DialogHeader } from '../../../shared/components/Dialog'
 import { IconHeart, IconPlus, IconSearch, IconStar, IconX } from '../../../shared/components/icons'
 import { useIntersectionObserver } from '../../../shared/hooks/useIntersectionObserver'
-import { TagDot } from '../../tags/components/TagPill'
-import { DEFAULT_PRESET_TAGS } from '../../tags/hooks/useInfiniteTags'
+import { TagSearchInput } from '../../tags/components/TagSearchInput'
 import { useInfiniteContacts } from '../hooks/useInfiniteContacts'
 import { contactoService } from '../services/contactoService'
 
 const AVATAR_HUES = ['#3B82F6', '#8B5CF6', '#D97706', '#0E9FB8', '#E0607E', '#2E6F5E']
+const DEFAULT_CONTACT_TAG_COLOR = '#3B82F6'
 
 const TIPOS_TELEFONO = ['Móvil', 'Casa', 'Trabajo', 'Otro']
 const TIPOS_CORREO = ['Personal', 'Trabajo', 'Estudio', 'Otro']
@@ -41,7 +41,7 @@ function getTextareaClasses(hasError = false) {
 
 const DEFAULT_INITIAL_PHONE = () => [{ prefijo: '+52', noTelefonico: '', tipo: 'Móvil' }]
 
-export function ContactsDialog({ availableTags = [], onClose, onContactCreated }) {
+export function ContactsDialog({ availableTags = [], onClose, onContactCreated, onTagCreated }) {
   const {
     contacts,
     hasMore,
@@ -80,30 +80,8 @@ export function ContactsDialog({ availableTags = [], onClose, onContactCreated }
   const [notas, setNotas] = useState('')
   const [favorito, setFavorito] = useState(false)
 
-  // 5. Etiquetas
-  const mergedTags = useMemo(() => {
-    const map = new Map()
-    for (const t of [...DEFAULT_PRESET_TAGS, ...availableTags]) {
-      const label = stripLeadingHash(t.nombre || t.label || '')
-      if (!label) continue
-      const key = label.toLowerCase()
-      if (!map.has(key)) {
-        map.set(key, {
-          id: t.id ?? key,
-          nombre: `#${label}`,
-          label,
-          hexColor: sanitizeHexColor(t.hexColor || t.color, '#3B82F6'),
-        })
-      }
-    }
-    return Array.from(map.values())
-  }, [availableTags])
-
-  const [selectedTagNames, setSelectedTagNames] = useState([])
-  const [customTagInput, setCustomTagInput] = useState('')
-  const [customTags, setCustomTags] = useState([])
-
-  const allTagOptions = useMemo(() => [...mergedTags, ...customTags], [mergedTags, customTags])
+  // 5. Etiquetas: el formulario inicia sin etiquetas; solo se muestran las que el usuario añade
+  const [selectedTags, setSelectedTags] = useState([])
 
   const listRef = useRef(null)
   const sentinelRef = useIntersectionObserver({
@@ -149,8 +127,7 @@ export function ContactsDialog({ availableTags = [], onClose, onContactCreated }
     setAvatar('')
     setNotas('')
     setFavorito(false)
-    setSelectedTagNames([])
-    setCustomTagInput('')
+    setSelectedTags([])
     setFieldErrors({})
     setFormError(null)
   }
@@ -256,32 +233,6 @@ export function ContactsDialog({ availableTags = [], onClose, onContactCreated }
     if (patch.ciudad !== undefined) clearFieldError(`direccion_${index}_ciudad`)
     if (patch.estado !== undefined) clearFieldError(`direccion_${index}_estado`)
     if (patch.tipo !== undefined) clearFieldError(`direccion_${index}_tipo`)
-  }
-
-  // Etiquetas
-  const toggleTagSelection = (tagObj) => {
-    setSelectedTagNames((prev) => {
-      const exists = prev.some((n) => n.toLowerCase() === tagObj.nombre.toLowerCase())
-      return exists
-        ? prev.filter((n) => n.toLowerCase() !== tagObj.nombre.toLowerCase())
-        : [...prev, tagObj.nombre]
-    })
-  }
-
-  const handleAddCustomTag = () => {
-    const formatted = normalizeTagNameForDb(customTagInput)
-    if (!formatted) return
-    const label = stripLeadingHash(formatted)
-    if (!allTagOptions.some((t) => t.nombre.toLowerCase() === formatted.toLowerCase())) {
-      setCustomTags((prev) => [
-        ...prev,
-        { id: formatted.toLowerCase(), nombre: formatted, label, hexColor: '#3B82F6' },
-      ])
-    }
-    setSelectedTagNames((prev) =>
-      prev.some((n) => n.toLowerCase() === formatted.toLowerCase()) ? prev : [...prev, formatted],
-    )
-    setCustomTagInput('')
   }
 
   // Validación y Envío (POST /agenda/contactos)
@@ -398,26 +349,23 @@ export function ContactsDialog({ availableTags = [], onClose, onContactCreated }
         direccion: c.direccion.trim().slice(0, 150),
         tipo: c.tipo?.trim().slice(0, 30) || 'Personal',
       })),
-      etiquetas: selectedTagNames
-        .map((name) => {
-          const found = allTagOptions.find((t) => t.nombre.toLowerCase() === name.toLowerCase())
-          const clean = normalizeTagNameForDb(found?.nombre || name)
-          if (!clean) return null
-          return {
-            nombre: clean,
-            hexColor: sanitizeHexColor(found?.hexColor || '#3B82F6'),
-          }
-        })
-        .filter(Boolean),
+      etiquetas: selectedTags
+        .map((t) => ({
+          nombre: normalizeTagNameForDb(t.nombre || t.label),
+          hexColor: sanitizeHexColor(t.hexColor, DEFAULT_CONTACT_TAG_COLOR),
+        }))
+        .filter((t) => t.nombre),
     }
 
     setSaving(true)
     try {
       await contactoService.crearContacto(payload)
+      const hadTags = payload.etiquetas.length > 0
       resetFormState()
       setShowCreateForm(false)
       refreshContacts()
       onContactCreated?.()
+      if (hadTags) onTagCreated?.()
     } catch (err) {
       setFormError(err?.mensaje || err?.message || 'Error al guardar el contacto.')
     } finally {
@@ -925,60 +873,19 @@ export function ContactsDialog({ availableTags = [], onClose, onContactCreated }
               />
             </div>
 
-            {/* 5. Etiquetas del Contacto */}
+            {/* 5. Etiquetas del Contacto: buscador con sugerencias; solo se muestran las seleccionadas */}
             <div className="space-y-2 border-t border-line pt-2.5">
               <span className="block text-[11px] font-medium tracking-[0.08em] text-ink-soft uppercase">
                 Etiquetas
               </span>
-              <div className="flex flex-wrap gap-1.5">
-                {allTagOptions.map((t) => {
-                  const isSelected = selectedTagNames.some((n) => n.toLowerCase() === t.nombre.toLowerCase())
-                  return (
-                    <button
-                      key={t.nombre}
-                      type="button"
-                      aria-pressed={isSelected}
-                      onClick={() => toggleTagSelection(t)}
-                      className={`inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[12px] transition-colors focus-visible:ring-2 focus-visible:ring-accent/30 focus-visible:outline-none ${
-                        isSelected
-                          ? 'border-ink/20 bg-surface font-medium text-ink shadow-whisper'
-                          : 'border-line text-ink-soft hover:text-ink'
-                      }`}
-                    >
-                      <TagDot color={t.hexColor} size={6} />
-                      <span>
-                        <span className="text-ink-faint">#</span>
-                        {t.label}
-                      </span>
-                    </button>
-                  )
-                })}
-              </div>
-
-              <div className="flex items-center gap-2 pt-0.5">
-                <input
-                  type="text"
-                  maxLength={49}
-                  value={customTagInput}
-                  onChange={(e) => setCustomTagInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault()
-                      handleAddCustomTag()
-                    }
-                  }}
-                  placeholder="Nueva etiqueta (ej. Amigos)"
-                  className="h-8 flex-1 rounded-lg border border-line bg-surface px-2.5 text-[12.5px] text-ink outline-none placeholder:text-ink-faint focus:border-accent/50"
-                />
-                <button
-                  type="button"
-                  onClick={handleAddCustomTag}
-                  className="inline-flex h-8 items-center gap-1 rounded-lg border border-line bg-surface px-2.5 text-[12px] font-medium text-ink-soft transition-colors hover:text-ink"
-                >
-                  <IconPlus size={12} />
-                  Etiqueta
-                </button>
-              </div>
+              <TagSearchInput
+                selectedTags={selectedTags}
+                onChange={setSelectedTags}
+                availableTags={availableTags}
+                defaultColor={DEFAULT_CONTACT_TAG_COLOR}
+                tone="surface"
+                placeholder="Buscar o crear etiqueta (ej. Amigos)"
+              />
             </div>
 
             {/* Acciones del formulario */}
