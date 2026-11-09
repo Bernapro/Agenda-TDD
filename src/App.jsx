@@ -330,6 +330,7 @@ export default function App() {
 
       {dialog?.type === 'contacts' && (
         <ContactsDialog
+          availableTags={sidebarTags}
           onClose={closeDialog}
           onContactCreated={refreshContactsCount}
         />

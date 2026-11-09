@@ -26,6 +26,11 @@
   --color-task: #d97706;          /* Ámbar Tareas */
   --color-routine: #8b5cf6;       /* Violeta Rutinas / Hábitos */
 
+  /* Validación Suave (Warm Terracotta / Soft Rose — armónico con Alabaster #faf9f6) */
+  --color-danger: #c85a54;        /* Rojo terracota suave para bordes, iconos y texto de ayuda */
+  --color-danger-soft: #fdf2f1;   /* Fondo rosado cálido muy sutil para inputs con error */
+  --color-danger-line: #e8b4b0;   /* Borde suave para contenedores o alertas inline */
+
   /* Sombras y Elevación */
   --shadow-whisper: 0 1px 2px rgb(28 30 31 / 0.04);
   --shadow-float: 0 12px 32px -12px rgb(28 30 31 / 0.18), 0 2px 6px rgb(28 30 31 / 0.04);
