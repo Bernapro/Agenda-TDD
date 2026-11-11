@@ -39,7 +39,19 @@ export const contactoService = {
   },
 
   /**
+   * GET /agenda/contactos/{id}
+   */
+  obtenerPorId: (id, { signal } = {}) =>
+    httpClient.get(`/agenda/contactos/${id}`, { signal }),
+
+  /**
    * POST /agenda/contactos
    */
   crearContacto: (payload) => httpClient.post('/agenda/contactos', payload),
+
+  /**
+   * PUT /agenda/contactos/{id} (Actualización atómica completa)
+   */
+  actualizarContacto: (id, payload) =>
+    httpClient.put(`/agenda/contactos/${id}`, payload),
 }

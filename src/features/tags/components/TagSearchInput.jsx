@@ -30,6 +30,7 @@ export function TagSearchInput({
   onSelectColor,
   tone = 'canvas',
   placeholder = 'Buscar o crear etiqueta (ej. Finanzas)',
+  readOnly = false,
 }) {
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
@@ -190,32 +191,39 @@ export function TagSearchInput({
   return (
     <div ref={containerRef} className="space-y-2">
       {/* Tarjetas: únicamente las etiquetas seleccionadas / añadidas */}
-      {selectedTags.length > 0 && (
+      {selectedTags.length > 0 ? (
         <div className="flex flex-wrap gap-2">
           {selectedTags.map((tag) => (
             <span
               key={tagKey(tag)}
-              className="inline-flex h-8 animate-pop items-center gap-1.5 rounded-full border border-ink/20 bg-surface pr-2 pl-3 text-[13px] font-medium text-ink shadow-whisper"
+              className={`inline-flex h-8 animate-pop items-center gap-1.5 rounded-full border border-ink/20 bg-surface text-[13px] font-medium text-ink shadow-whisper ${
+                readOnly ? 'px-3' : 'pr-2 pl-3'
+              }`}
             >
               <TagDot color={tag.hexColor} size={7} />
               <span>
                 <span className="text-ink-faint">#</span>
                 {stripLeadingHash(tag.nombre || tag.label)}
               </span>
-              <button
-                type="button"
-                onClick={() => removeTag(tag)}
-                aria-label={`Quitar etiqueta ${stripLeadingHash(tag.nombre || tag.label)}`}
-                className="grid h-5 w-5 place-items-center rounded-full text-ink-soft transition-colors hover:bg-panel hover:text-ink focus-visible:ring-2 focus-visible:ring-accent/30 focus-visible:outline-none"
-              >
-                <IconX size={12} />
-              </button>
+              {!readOnly && (
+                <button
+                  type="button"
+                  onClick={() => removeTag(tag)}
+                  aria-label={`Quitar etiqueta ${stripLeadingHash(tag.nombre || tag.label)}`}
+                  className="grid h-5 w-5 place-items-center rounded-full text-ink-soft transition-colors hover:bg-panel hover:text-ink focus-visible:ring-2 focus-visible:ring-accent/30 focus-visible:outline-none"
+                >
+                  <IconX size={12} />
+                </button>
+              )}
             </span>
           ))}
         </div>
+      ) : (
+        readOnly && <p className="text-[12.5px] text-ink-faint">Sin etiquetas asignadas.</p>
       )}
 
       {/* Textfield con sugerencias + botón "+ Etiqueta" */}
+      {!readOnly && (
       <div className="flex items-start gap-2">
         <div className="relative min-w-0 flex-1">
           <div
@@ -329,6 +337,7 @@ export function TagSearchInput({
           Etiqueta
         </button>
       </div>
+      )}
     </div>
   )
 }

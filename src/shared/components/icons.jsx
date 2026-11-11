@@ -146,6 +146,13 @@ export const IconStar = makeIcon(
   <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />,
 )
 
+export const IconPencil = makeIcon(
+  <>
+    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+    <path d="m15 5 4 4" />
+  </>,
+)
+
 export function IconHeart({ filled = false, size = 16, className = '', ...props }) {
   return (
     <svg
