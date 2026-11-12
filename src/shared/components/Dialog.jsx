@@ -27,7 +27,7 @@ export function Dialog({ onClose, labelledBy, width = 'max-w-[480px]', children 
   )
 }
 
-export function DialogHeader({ id, title, subtitle, onClose }) {
+export function DialogHeader({ id, title, subtitle, actions, onClose }) {
   return (
     <div className="flex items-start justify-between gap-4 border-b border-line px-6 py-4">
       <div>
@@ -36,14 +36,17 @@ export function DialogHeader({ id, title, subtitle, onClose }) {
         </h2>
         {subtitle && <p className="mt-0.5 text-[13px] text-ink-soft">{subtitle}</p>}
       </div>
-      <button
-        type="button"
-        onClick={onClose}
-        aria-label="Cerrar"
-        className="grid h-8 w-8 place-items-center rounded-lg text-ink-soft transition-colors hover:bg-panel hover:text-ink focus-visible:ring-2 focus-visible:ring-accent/30 focus-visible:outline-none"
-      >
-        <IconX size={16} />
-      </button>
+      <div className="flex items-center gap-2">
+        {actions}
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Cerrar"
+          className="grid h-8 w-8 place-items-center rounded-lg text-ink-soft transition-colors hover:bg-panel hover:text-ink focus-visible:ring-2 focus-visible:ring-accent/30 focus-visible:outline-none"
+        >
+          <IconX size={16} />
+        </button>
+      </div>
     </div>
   )
 }

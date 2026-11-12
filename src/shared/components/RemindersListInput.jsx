@@ -7,16 +7,19 @@ const UNIDADES = [
   { value: 'SEMANAS', label: 'Semanas antes' },
 ]
 
-export function RemindersListInput({ value = [], onChange }) {
+export function RemindersListInput({ value = [], onChange, disabled = false }) {
   const handleAdd = () => {
+    if (disabled) return
     onChange([...value, { tiempoAnticipacion: 15, unidadTiempo: 'MINUTOS' }])
   }
 
   const handleRemove = (index) => {
+    if (disabled) return
     onChange(value.filter((_, i) => i !== index))
   }
 
   const handleChange = (index, patch) => {
+    if (disabled) return
     onChange(value.map((item, i) => (i === index ? { ...item, ...patch } : item)))
   }
 
@@ -27,33 +30,37 @@ export function RemindersListInput({ value = [], onChange }) {
           <IconBell size={13} />
           Recordatorios
         </span>
-        <button
-          type="button"
-          onClick={handleAdd}
-          className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[12px] font-medium text-accent transition-colors hover:bg-accent-soft"
-        >
-          <IconPlus size={12} strokeWidth={2.25} />
-          Añadir recordatorio
-        </button>
+        {!disabled && (
+          <button
+            type="button"
+            onClick={handleAdd}
+            className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[12px] font-medium text-accent transition-colors hover:bg-accent-soft"
+          >
+            <IconPlus size={12} strokeWidth={2.25} />
+            Añadir recordatorio
+          </button>
+        )}
       </div>
 
-      {value.length > 0 && (
+      {value.length > 0 ? (
         <ul className="space-y-1.5">
           {value.map((rem, idx) => (
             <li key={idx} className="flex items-center gap-2">
               <input
                 type="number"
+                disabled={disabled}
                 min={0}
                 value={rem.tiempoAnticipacion}
                 onChange={(e) =>
                   handleChange(idx, { tiempoAnticipacion: Math.max(0, parseInt(e.target.value, 10) || 0) })
                 }
-                className="h-9 w-24 rounded-lg border border-line bg-canvas px-2.5 text-[13px] text-ink tabular-nums outline-none focus:border-accent/50 focus:bg-surface"
+                className="h-9 w-24 rounded-lg border border-line bg-canvas px-2.5 text-[13px] text-ink tabular-nums outline-none focus:border-accent/50 focus:bg-surface disabled:cursor-default disabled:opacity-75"
               />
               <select
+                disabled={disabled}
                 value={rem.unidadTiempo}
                 onChange={(e) => handleChange(idx, { unidadTiempo: e.target.value })}
-                className="h-9 flex-1 rounded-lg border border-line bg-canvas px-2.5 text-[13px] text-ink outline-none focus:border-accent/50 focus:bg-surface"
+                className="h-9 flex-1 rounded-lg border border-line bg-canvas px-2.5 text-[13px] text-ink outline-none focus:border-accent/50 focus:bg-surface disabled:cursor-default disabled:opacity-75"
               >
                 {UNIDADES.map((u) => (
                   <option key={u.value} value={u.value}>
@@ -61,17 +68,21 @@ export function RemindersListInput({ value = [], onChange }) {
                   </option>
                 ))}
               </select>
-              <button
-                type="button"
-                onClick={() => handleRemove(idx)}
-                aria-label="Eliminar recordatorio"
-                className="grid h-8 w-8 place-items-center rounded-lg text-ink-soft hover:bg-panel hover:text-ink"
-              >
-                <IconX size={14} />
-              </button>
+              {!disabled && (
+                <button
+                  type="button"
+                  onClick={() => handleRemove(idx)}
+                  aria-label="Eliminar recordatorio"
+                  className="grid h-8 w-8 place-items-center rounded-lg text-ink-soft hover:bg-panel hover:text-ink"
+                >
+                  <IconX size={14} />
+                </button>
+              )}
             </li>
           ))}
         </ul>
+      ) : (
+        disabled && <p className="text-[12.5px] text-ink-faint">Sin recordatorios configurados</p>
       )}
     </div>
   )

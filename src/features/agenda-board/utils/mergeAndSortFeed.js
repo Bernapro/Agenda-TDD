@@ -30,6 +30,8 @@ export function normalizeTareaOrRoutine(dto) {
   const hexColor = sanitizeHexColor(dto.hexColor, defaultColor)
   const etiquetas = Array.isArray(dto.etiquetas) ? dto.etiquetas.map(normalizeTagDto).filter(Boolean) : []
   const dateKey = extractDateKeyFromISO(dto.fechaInicio || dto.fechaLimite)
+  const rawEndDateKey = extractDateKeyFromISO(dto.fechaFin || dto.fechaInicio || dto.fechaLimite) || dateKey
+  const endDateKey = rawEndDateKey >= dateKey ? rawEndDateKey : dateKey
   const startMinutes = isoOrTimeToMinutes(dto.fechaInicio)
   const endMinutes = dto.fechaFin ? isoOrTimeToMinutes(dto.fechaFin) : Math.min(startMinutes + 30, 23 * 60 + 59)
   const limitTime = dto.fechaLimite ? extractTimeFromISO(dto.fechaLimite) : extractTimeFromISO(dto.fechaFin || dto.fechaInicio)
@@ -47,6 +49,7 @@ export function normalizeTareaOrRoutine(dto) {
       fechaFin: dto.fechaFin,
       fechaLimite: null,
       date: dateKey,
+      endDate: endDateKey,
       start: startMinutes,
       end: endMinutes,
       startTimeText: extractTimeFromISO(dto.fechaInicio),
@@ -73,6 +76,7 @@ export function normalizeTareaOrRoutine(dto) {
     fechaLimite: dto.fechaLimite,
     limitTime,
     date: dateKey,
+    endDate: endDateKey,
     start: startMinutes,
     end: endMinutes,
     startTimeText: extractTimeFromISO(dto.fechaInicio),
@@ -88,6 +92,8 @@ export function normalizeEvento(dto) {
   const hexColor = sanitizeHexColor(dto.hexColor, '#3B82F6')
   const etiquetas = Array.isArray(dto.etiquetas) ? dto.etiquetas.map(normalizeTagDto).filter(Boolean) : []
   const dateKey = extractDateKeyFromISO(dto.fechaInicio)
+  const rawEndDateKey = extractDateKeyFromISO(dto.fechaFin || dto.fechaInicio) || dateKey
+  const endDateKey = rawEndDateKey >= dateKey ? rawEndDateKey : dateKey
   const startMinutes = isoOrTimeToMinutes(dto.fechaInicio)
   const rawEndMinutes = dto.fechaFin ? isoOrTimeToMinutes(dto.fechaFin) : startMinutes + 60
   const endMinutes = rawEndMinutes >= startMinutes ? rawEndMinutes : startMinutes + 60
@@ -107,6 +113,7 @@ export function normalizeEvento(dto) {
     fechaInicio: dto.fechaInicio,
     fechaFin: dto.fechaFin,
     date: dateKey,
+    endDate: endDateKey,
     start: startMinutes,
     end: endMinutes,
     startTimeText: extractTimeFromISO(dto.fechaInicio),

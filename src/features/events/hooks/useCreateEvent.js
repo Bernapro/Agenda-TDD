@@ -20,8 +20,24 @@ export function useCreateEvent() {
     }
   }, [])
 
+  const updateEvent = useCallback(async (id, eventoPostDto) => {
+    setSubmitting(true)
+    setError(null)
+    try {
+      const updated = await eventoService.actualizarEvento(id, eventoPostDto)
+      return updated
+    } catch (err) {
+      const msg = err?.mensaje || err?.message || 'No se pudo actualizar el evento.'
+      setError(msg)
+      throw err
+    } finally {
+      setSubmitting(false)
+    }
+  }, [])
+
   return {
     createEvent,
+    updateEvent,
     submitting,
     error,
     clearError: () => setError(null),

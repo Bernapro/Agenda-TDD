@@ -2,9 +2,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AgendaMainBoard } from './features/agenda-board/components/AgendaMainBoard'
 import { CreateItemCombobox } from './features/agenda-board/components/CreateItemCombobox'
 import { ExportMenuButton } from './features/agenda-board/components/ExportMenuButton'
+import { HorizontalCalendarBoard } from './features/agenda-board/components/HorizontalCalendarBoard'
 import { TimelineTaskList } from './features/agenda-board/components/TimelineTaskList'
 import { TimeStepNavigator } from './features/agenda-board/components/TimeStepNavigator'
 import { TopDateHeader } from './features/agenda-board/components/TopDateHeader'
+import { ViewModeToggle } from './features/agenda-board/components/ViewModeToggle'
 import { useCalendarMonthMarks } from './features/agenda-board/hooks/useCalendarMonthMarks'
 import { useInfiniteAgendaFeed } from './features/agenda-board/hooks/useInfiniteAgendaFeed'
 import { fromKey, isSameDay, stepDate } from './features/agenda-board/utils/dateRangeCalculator'
@@ -39,10 +41,13 @@ export default function App() {
   const [nowMinutes, setNowMinutes] = useState(getCurrentMinutes)
   const [activeDate, setActiveDate] = useState(getTodayDate)
   const [range, setRange] = useState('day')
+  const [boardView, setBoardView] = useState('list')
   const { sidebarOpen, toggleSidebar } = useSidebarState(true)
   const [selectedTags, setSelectedTags] = useState([])
   const [dialog, setDialog] = useState(null)
   const [contactsCount, setContactsCount] = useState(0)
+
+  const effectiveBoardView = range === 'day' ? 'list' : boardView
 
   // Actualiza el marcador de hora actual cada minuto
   useEffect(() => {
@@ -187,17 +192,37 @@ export default function App() {
     setRange('day')
   }
 
-  const handleItemCreated = ({ kind, dateKey }) => {
-    if (dateKey) {
+  const handleItemSaved = ({ kind, dateKey, updated }) => {
+    if (dateKey && !updated) {
       setActiveDate(fromKey(dateKey))
     }
-    if (kind === 'routine' && (range === 'month' || range === 'year')) {
+    if (kind === 'routine' && !updated && (range === 'month' || range === 'year')) {
       setRange('day')
     }
     invalidateMonthCache()
     refreshFeed()
     refreshTags()
   }
+
+  const handleOpenItemDetail = useCallback((item) => {
+    if (!item?.idActividad) return
+    setDialog({
+      type: 'create',
+      mode: 'view',
+      kind: item.kind,
+      itemId: item.idActividad,
+    })
+  }, [])
+
+  const handleEditItem = useCallback((item) => {
+    if (!item?.idActividad) return
+    setDialog({
+      type: 'create',
+      mode: 'edit',
+      kind: item.kind,
+      itemId: item.idActividad,
+    })
+  }, [])
 
   return (
     <div
@@ -207,7 +232,15 @@ export default function App() {
       <SidebarDrawer
         open={sidebarOpen}
         onToggle={toggleSidebar}
-        footer={<ExportMenuButton occurrences={visibleItems} activeDate={activeDate} range={range} today={today} />}
+        footer={
+          <ExportMenuButton
+            occurrences={visibleItems}
+            activeDate={activeDate}
+            range={range}
+            today={today}
+            boardView={effectiveBoardView}
+          />
+        }
       >
         <TimeRangeSelect value={range} today={today} onChange={changeRange} />
         <SearchTrigger onOpen={() => setDialog({ type: 'search' })} />
@@ -239,7 +272,13 @@ export default function App() {
 
         <AgendaMainBoard
           sidebarOpen={sidebarOpen}
-          toolbarStart={<CreateItemCombobox onCreate={(kind) => setDialog({ type: 'create', kind })} />}
+          wide={effectiveBoardView === 'calendar'}
+          toolbarStart={
+            <div className="flex flex-wrap items-center gap-2.5">
+              <CreateItemCombobox onCreate={(kind) => setDialog({ type: 'create', mode: 'create', kind })} />
+              {range !== 'day' && <ViewModeToggle value={boardView} onChange={setBoardView} />}
+            </div>
+          }
           toolbarEnd={
             <div className="flex flex-wrap items-center justify-end gap-3 text-[13px] text-ink-soft">
               {selectedTags.map((tagKey) => {
@@ -286,32 +325,56 @@ export default function App() {
             </div>
           )}
 
-          <TimelineTaskList
-            occurrences={visibleItems}
-            range={range}
-            activeDate={activeDate}
-            today={today}
-            nowMinutes={nowMinutes}
-            routinesHidden={routinesHidden}
-            loadingInitial={loadingInitial}
-            loadingMore={loadingMore}
-            hasMore={hasMoreFeed}
-            onLoadMore={loadMoreFeed}
-            onToggleTask={toggleTask}
-            onOpenDay={openDay}
-            onCreate={() => setDialog({ type: 'create', kind: 'event' })}
-          />
+          {effectiveBoardView === 'calendar' ? (
+            <HorizontalCalendarBoard
+              occurrences={visibleItems}
+              range={range}
+              activeDate={activeDate}
+              today={today}
+              routinesHidden={routinesHidden}
+              loadingInitial={loadingInitial}
+              loadingMore={loadingMore}
+              hasMore={hasMoreFeed}
+              onLoadMore={loadMoreFeed}
+              onToggleTask={toggleTask}
+              onOpenDay={openDay}
+              onCreate={() => setDialog({ type: 'create', mode: 'create', kind: 'event' })}
+              onOpenItemDetail={handleOpenItemDetail}
+              onEditItem={handleEditItem}
+            />
+          ) : (
+            <TimelineTaskList
+              occurrences={visibleItems}
+              range={range}
+              activeDate={activeDate}
+              today={today}
+              nowMinutes={nowMinutes}
+              routinesHidden={routinesHidden}
+              loadingInitial={loadingInitial}
+              loadingMore={loadingMore}
+              hasMore={hasMoreFeed}
+              onLoadMore={loadMoreFeed}
+              onToggleTask={toggleTask}
+              onOpenDay={openDay}
+              onCreate={() => setDialog({ type: 'create', mode: 'create', kind: 'event' })}
+              onOpenItemDetail={handleOpenItemDetail}
+              onEditItem={handleEditItem}
+            />
+          )}
         </AgendaMainBoard>
       </main>
 
       {dialog?.type === 'create' && (
         <CreateItemDialog
+          key={`${dialog.mode || 'create'}-${dialog.kind}-${dialog.itemId ?? 'new'}`}
+          mode={dialog.mode || 'create'}
+          itemId={dialog.itemId ?? null}
           initialKind={dialog.kind}
           defaultDate={activeDate}
           defaultStart={isSameDay(activeDate, today) ? Math.min(Math.ceil(nowMinutes / 30) * 30, 23 * 60) : 9 * 60}
           availableTags={sidebarTags}
           onClose={closeDialog}
-          onSuccess={handleItemCreated}
+          onSuccess={handleItemSaved}
         />
       )}
 

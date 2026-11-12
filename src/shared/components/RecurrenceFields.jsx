@@ -8,9 +8,9 @@ const FRECUENCIAS = [
 ]
 
 const inputCls =
-  'h-9 w-full rounded-lg border border-line bg-canvas px-2.5 text-[13px] text-ink outline-none transition-colors focus:border-accent/50 focus:bg-surface focus:ring-2 focus:ring-accent/15'
+  'h-9 w-full rounded-lg border border-line bg-canvas px-2.5 text-[13px] text-ink outline-none transition-colors focus:border-accent/50 focus:bg-surface focus:ring-2 focus:ring-accent/15 disabled:cursor-default disabled:opacity-75'
 
-export function RecurrenceFields({ enabled, onToggleEnabled, value, onChange, baseDate }) {
+export function RecurrenceFields({ enabled, onToggleEnabled, value, onChange, baseDate, disabled = false }) {
   const rec = value || {
     frecuencia: 'SEMANAL',
     intervalo: 1,
@@ -22,6 +22,7 @@ export function RecurrenceFields({ enabled, onToggleEnabled, value, onChange, ba
   }
 
   const update = (patch) => {
+    if (disabled) return
     onChange({
       ...rec,
       fechaInicio: rec.fechaInicio || baseDate,
@@ -37,6 +38,7 @@ export function RecurrenceFields({ enabled, onToggleEnabled, value, onChange, ba
   )
 
   const toggleDayCode = (code) => {
+    if (disabled) return
     const next = new Set(selectedDays)
     if (next.has(code)) {
       if (next.size > 1) next.delete(code)
@@ -53,9 +55,10 @@ export function RecurrenceFields({ enabled, onToggleEnabled, value, onChange, ba
         <span className="text-[12px] font-medium text-ink-soft">Repetir actividad (Recurrencia)</span>
         <input
           type="checkbox"
+          disabled={disabled}
           checked={enabled}
           onChange={(e) => onToggleEnabled(e.target.checked)}
-          className="h-4 w-4 accent-accent"
+          className="h-4 w-4 accent-accent disabled:cursor-default"
         />
       </div>
 
@@ -65,6 +68,7 @@ export function RecurrenceFields({ enabled, onToggleEnabled, value, onChange, ba
             <label className="block">
               <span className="mb-1 block text-[11.5px] text-ink-soft">Frecuencia</span>
               <select
+                disabled={disabled}
                 value={rec.frecuencia}
                 onChange={(e) => update({ frecuencia: e.target.value })}
                 className={inputCls}
@@ -81,6 +85,7 @@ export function RecurrenceFields({ enabled, onToggleEnabled, value, onChange, ba
               <span className="mb-1 block text-[11.5px] text-ink-soft">Intervalo (cada N)</span>
               <input
                 type="number"
+                disabled={disabled}
                 min={1}
                 max={99}
                 value={rec.intervalo ?? 1}
@@ -100,8 +105,9 @@ export function RecurrenceFields({ enabled, onToggleEnabled, value, onChange, ba
                     <button
                       key={code}
                       type="button"
+                      disabled={disabled}
                       onClick={() => toggleDayCode(code)}
-                      className={`h-7 rounded-md border px-2 text-[11.5px] font-medium transition-colors ${
+                      className={`h-7 rounded-md border px-2 text-[11.5px] font-medium transition-colors disabled:cursor-default ${
                         active
                           ? 'border-accent bg-accent text-white'
                           : 'border-line bg-surface text-ink-soft hover:text-ink'
@@ -120,6 +126,7 @@ export function RecurrenceFields({ enabled, onToggleEnabled, value, onChange, ba
               <span className="mb-1 block text-[11.5px] text-ink-soft">Día del mes (1–31)</span>
               <input
                 type="number"
+                disabled={disabled}
                 min={1}
                 max={31}
                 value={rec.diaMes ?? 1}
@@ -135,6 +142,7 @@ export function RecurrenceFields({ enabled, onToggleEnabled, value, onChange, ba
                 <span className="mb-1 block text-[11.5px] text-ink-soft">Día del mes (1–31)</span>
                 <input
                   type="number"
+                  disabled={disabled}
                   min={1}
                   max={31}
                   value={rec.diaMes ?? 1}
@@ -145,6 +153,7 @@ export function RecurrenceFields({ enabled, onToggleEnabled, value, onChange, ba
               <label className="block">
                 <span className="mb-1 block text-[11.5px] text-ink-soft">Mes del año</span>
                 <select
+                  disabled={disabled}
                   value={rec.mesAnio ?? 1}
                   onChange={(e) => update({ mesAnio: Number(e.target.value) || 1 })}
                   className={inputCls}
@@ -163,6 +172,7 @@ export function RecurrenceFields({ enabled, onToggleEnabled, value, onChange, ba
             <span className="mb-1 block text-[11.5px] text-ink-soft">Fecha fin de recurrencia (opcional)</span>
             <input
               type="date"
+              disabled={disabled}
               min={baseDate}
               value={rec.fechaFin || ''}
               onChange={(e) => update({ fechaFin: e.target.value || null })}

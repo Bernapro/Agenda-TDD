@@ -19,7 +19,13 @@ export const tareaService = {
   /**
    * GET /agenda/tareas/{id}
    */
-  obtenerPorId: (id) => httpClient.get(`/agenda/tareas/${id}`),
+  obtenerPorId: (id, { signal } = {}) => httpClient.get(`/agenda/tareas/${id}`, { signal }),
+
+  /**
+   * PUT /agenda/tareas/{id}
+   * Actualiza atómicamente tanto Tareas (fechaLimite != null) como Rutinas (fechaLimite === null).
+   */
+  actualizarTareaORutina: (id, payload) => httpClient.put(`/agenda/tareas/${id}`, payload),
 
   /**
    * GET /agenda/tareas/subtareas?id={id}

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { IconCalendar, IconCheck, IconChevronDown, IconDownload, IconFileText, IconTable } from '../../../shared/components/icons'
 import { useDismiss } from '../../../shared/hooks/useDismiss'
-import { downloadCSV, downloadICS, exportFileBase, exportTitle, printView } from '../utils/exportUtils'
+import { downloadCSV, downloadICS, exportFileBase, exportTitle, exportToPDF } from '../utils/exportUtils'
 
 const OPTIONS = [
   { format: 'pdf', label: 'Exportar vista a PDF', description: 'Documento limpio listo para imprimir', Icon: IconFileText },
@@ -9,7 +9,7 @@ const OPTIONS = [
   { format: 'csv', label: 'Exportar tabla de datos', description: 'Para hojas de cálculo', Icon: IconTable },
 ]
 
-export function ExportMenuButton({ occurrences = [], activeDate, range, today }) {
+export function ExportMenuButton({ occurrences = [], activeDate, range, today, boardView = 'list' }) {
   const [open, setOpen] = useState(false)
   const [done, setDone] = useState(false)
   const ref = useRef(null)
@@ -29,7 +29,15 @@ export function ExportMenuButton({ occurrences = [], activeDate, range, today })
     const base = exportFileBase(activeDate, range)
     const title = exportTitle(activeDate, range, today)
     if (format === 'pdf') {
-      requestAnimationFrame(() => printView(title))
+      requestAnimationFrame(() =>
+        exportToPDF({
+          occurrences,
+          activeDate,
+          range,
+          today,
+          boardView,
+        }),
+      )
     } else if (format === 'ics') {
       downloadICS(occurrences, title, base)
     } else {

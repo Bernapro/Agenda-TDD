@@ -18,5 +18,10 @@ export const eventoService = {
   /**
    * GET /agenda/eventos/{id}
    */
-  obtenerPorId: (id) => httpClient.get(`/agenda/eventos/${id}`),
+  obtenerPorId: (id, { signal } = {}) => httpClient.get(`/agenda/eventos/${id}`, { signal }),
+
+  /**
+   * PUT /agenda/eventos/{id}
+   */
+  actualizarEvento: (id, payload) => httpClient.put(`/agenda/eventos/${id}`, payload),
 }

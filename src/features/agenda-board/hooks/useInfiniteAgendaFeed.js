@@ -8,6 +8,7 @@ import { mergeAndSortFeed } from '../utils/mergeAndSortFeed'
 const PAGE_LIMIT = 10
 
 export function useInfiniteAgendaFeed({ activeDate, range, selectedTags = [] }) {
+  const pageLimit = range === 'day' ? PAGE_LIMIT : 50
   const [tareasRaw, setTareasRaw] = useState([])
   const [eventosRaw, setEventosRaw] = useState([])
   const [hasMoreTareas, setHasMoreTareas] = useState(true)
@@ -42,13 +43,13 @@ export function useInfiniteAgendaFeed({ activeDate, range, selectedTags = [] }) 
       const [tareasLote, eventosLote] = await Promise.all([
         tareaService.obtenerPorCursor({
           id: 0,
-          limit: PAGE_LIMIT,
+          limit: pageLimit,
           fechaInicio: fechaInicioISO,
           fechaFin: fechaFinISO,
         }),
         eventoService.obtenerPorCursor({
           id: 0,
-          limit: PAGE_LIMIT,
+          limit: pageLimit,
           fechaInicio: fechaInicioISO,
           fechaFin: fechaFinISO,
         }),
@@ -60,8 +61,8 @@ export function useInfiniteAgendaFeed({ activeDate, range, selectedTags = [] }) 
       setTareasRaw(safeTareas)
       setEventosRaw(safeEventos)
 
-      const moreT = safeTareas.length >= PAGE_LIMIT
-      const moreE = safeEventos.length >= PAGE_LIMIT
+      const moreT = safeTareas.length >= pageLimit
+      const moreE = safeEventos.length >= pageLimit
 
       hasMoreTareasRef.current = moreT
       hasMoreEventosRef.current = moreE
@@ -80,7 +81,7 @@ export function useInfiniteAgendaFeed({ activeDate, range, selectedTags = [] }) 
       setLoadingInitial(false)
       fetchingRef.current = false
     }
-  }, [fechaInicioISO, fechaFinISO])
+  }, [fechaInicioISO, fechaFinISO, pageLimit])
 
   useEffect(() => {
     fetchInitial()
@@ -98,7 +99,7 @@ export function useInfiniteAgendaFeed({ activeDate, range, selectedTags = [] }) 
         hasMoreTareasRef.current
           ? tareaService.obtenerPorCursor({
               id: cursorTareaRef.current,
-              limit: PAGE_LIMIT,
+              limit: pageLimit,
               fechaInicio: fechaInicioISO,
               fechaFin: fechaFinISO,
             })
@@ -106,7 +107,7 @@ export function useInfiniteAgendaFeed({ activeDate, range, selectedTags = [] }) 
         hasMoreEventosRef.current
           ? eventoService.obtenerPorCursor({
               id: cursorEventoRef.current,
-              limit: PAGE_LIMIT,
+              limit: pageLimit,
               fechaInicio: fechaInicioISO,
               fechaFin: fechaFinISO,
             })
@@ -121,7 +122,7 @@ export function useInfiniteAgendaFeed({ activeDate, range, selectedTags = [] }) 
           const filtered = nuevasTareas.filter((x) => !existingIds.has(x.idActividad))
           return [...prev, ...filtered]
         })
-        const moreT = nuevasTareas.length >= PAGE_LIMIT
+        const moreT = nuevasTareas.length >= pageLimit
         hasMoreTareasRef.current = moreT
         setHasMoreTareas(moreT)
         if (nuevasTareas.length > 0) {
@@ -135,7 +136,7 @@ export function useInfiniteAgendaFeed({ activeDate, range, selectedTags = [] }) 
           const filtered = nuevosEventos.filter((x) => !existingIds.has(x.idActividad))
           return [...prev, ...filtered]
         })
-        const moreE = nuevosEventos.length >= PAGE_LIMIT
+        const moreE = nuevosEventos.length >= pageLimit
         hasMoreEventosRef.current = moreE
         setHasMoreEventos(moreE)
         if (nuevosEventos.length > 0) {
@@ -148,7 +149,7 @@ export function useInfiniteAgendaFeed({ activeDate, range, selectedTags = [] }) 
       setLoadingMore(false)
       fetchingRef.current = false
     }
-  }, [fechaInicioISO, fechaFinISO, loadingInitial, loadingMore])
+  }, [fechaInicioISO, fechaFinISO, loadingInitial, loadingMore, pageLimit])
 
   const routinesHidden = range === 'month' || range === 'year'
 

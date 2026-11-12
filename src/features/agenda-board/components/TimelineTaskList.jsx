@@ -6,14 +6,14 @@ import { RoutineRow } from '../../tasks-routines/components/RoutineRow'
 import { TaskRow } from '../../tasks-routines/components/TaskRow'
 import { MONTHS_SHORT, WEEKDAYS_SHORT, fromKey, isSameDay, minutesToTime, pad2 } from '../utils/dateRangeCalculator'
 
-function renderItem(item, onToggleTask) {
+function renderItem(item, onToggleTask, onOpenItemDetail, onEditItem) {
   switch (item.kind) {
     case 'event':
-      return <EventCard item={item} />
+      return <EventCard item={item} onOpenDetail={onOpenItemDetail} onEdit={onEditItem} />
     case 'task':
-      return <TaskRow item={item} onToggle={onToggleTask} />
+      return <TaskRow item={item} onToggle={onToggleTask} onOpenDetail={onOpenItemDetail} onEdit={onEditItem} />
     case 'routine':
-      return <RoutineRow item={item} />
+      return <RoutineRow item={item} onOpenDetail={onOpenItemDetail} onEdit={onEditItem} />
     default:
       return null
   }
@@ -41,7 +41,7 @@ function NowMarker({ minutes }) {
   )
 }
 
-function DayList({ items, nowMinutes, onToggleTask }) {
+function DayList({ items, nowMinutes, onToggleTask, onOpenItemDetail, onEditItem }) {
   let markerIndex = -1
   if (nowMinutes !== null && nowMinutes !== undefined) {
     const i = items.findIndex((it) => it.start > nowMinutes)
@@ -55,7 +55,9 @@ function DayList({ items, nowMinutes, onToggleTask }) {
         return (
           <Fragment key={item.id}>
             {i === markerIndex && <NowMarker minutes={nowMinutes} />}
-            <TimeRow time={showTime ? minutesToTime(item.start) : null}>{renderItem(item, onToggleTask)}</TimeRow>
+            <TimeRow time={showTime ? minutesToTime(item.start) : null}>
+              {renderItem(item, onToggleTask, onOpenItemDetail, onEditItem)}
+            </TimeRow>
           </Fragment>
         )
       })}
@@ -110,6 +112,8 @@ export function TimelineTaskList({
   onToggleTask,
   onOpenDay,
   onCreate,
+  onOpenItemDetail,
+  onEditItem,
 }) {
   const sentinelRef = useIntersectionObserver({
     onIntersect: () => onLoadMore?.(),
@@ -124,7 +128,13 @@ export function TimelineTaskList({
   if (range === 'day') {
     return (
       <>
-        <DayList items={occurrences} nowMinutes={isSameDay(activeDate, today) ? nowMinutes : null} onToggleTask={onToggleTask} />
+        <DayList
+          items={occurrences}
+          nowMinutes={isSameDay(activeDate, today) ? nowMinutes : null}
+          onToggleTask={onToggleTask}
+          onOpenItemDetail={onOpenItemDetail}
+          onEditItem={onEditItem}
+        />
         {hasMore && (
           <div ref={sentinelRef} className="py-4 text-center text-[12.5px] text-ink-faint">
             {loadingMore ? 'Cargando más actividades…' : ''}
@@ -163,7 +173,13 @@ export function TimelineTaskList({
                 Ver día →
               </span>
             </button>
-            <DayList items={items} nowMinutes={null} onToggleTask={onToggleTask} />
+            <DayList
+              items={items}
+              nowMinutes={null}
+              onToggleTask={onToggleTask}
+              onOpenItemDetail={onOpenItemDetail}
+              onEditItem={onEditItem}
+            />
           </section>
         )
       })}

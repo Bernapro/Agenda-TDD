@@ -77,10 +77,24 @@
   @page {
     margin: 14mm;
   }
+  *,
+  *::before,
+  *::after {
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+  }
   html,
-  body {
-    background: #fff;
-    print-color-adjust: exact;
-    -webkit-print-color-adjust: exact;
+  body,
+  #root {
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+  .grid.h-screen.overflow-hidden {
+    display: block !important;
+    height: auto !important;
+    overflow: visible !important;
   }
 }

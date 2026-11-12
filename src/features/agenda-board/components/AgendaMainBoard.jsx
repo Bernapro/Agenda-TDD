@@ -4,7 +4,7 @@ import { SIDEBAR_PADDING_X } from '../../sidebar-navigation/constants/layout'
  * Lienzo principal del tablero: barra de herramientas superior, línea de tiempo centrada (max-w-[760px])
  * y navegador flotante inferior derecho.
  */
-export function AgendaMainBoard({ toolbarStart, toolbarEnd, navigator, sidebarOpen, children }) {
+export function AgendaMainBoard({ toolbarStart, toolbarEnd, navigator, sidebarOpen, wide = false, children }) {
   return (
     <section aria-label="Tablero de agenda" className="relative min-h-0 bg-canvas print:bg-white">
       <div className="h-full overflow-y-auto print:h-auto print:overflow-visible">
@@ -15,7 +15,13 @@ export function AgendaMainBoard({ toolbarStart, toolbarEnd, navigator, sidebarOp
           {toolbarStart}
           {toolbarEnd}
         </div>
-        <div className="mx-auto max-w-[760px] px-8 pt-8 pb-32 print:max-w-none print:px-0 print:pb-0">{children}</div>
+        <div
+          className={`mx-auto ${
+            wide ? 'max-w-[1160px]' : 'max-w-[760px]'
+          } px-8 pt-8 pb-32 transition-[max-width] duration-200 print:max-w-none print:px-0 print:pb-0`}
+        >
+          {children}
+        </div>
       </div>
       {navigator}
     </section>
